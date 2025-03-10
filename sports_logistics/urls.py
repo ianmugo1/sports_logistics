@@ -18,9 +18,11 @@ from django.contrib import admin
 from django.urls import include, path
 from logistics_app import views as logistics_views
 
+from django.contrib import admin
+from django.urls import include, path
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', logistics_views.index, name='index'),  # maps the root URL to index view
-    path('logistics/', include('logistics_app.urls')),  # keep the logistics app URLs as well
+    path('', include('logistics_app.urls')),  # or use a prefix if desired
 ]
 

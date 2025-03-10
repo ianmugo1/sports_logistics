@@ -1,0 +1,37 @@
+{% extends 'logistics_app/base.html' %}
+
+{% block title %}Shipments{% endblock %}
+
+{% block content %}
+<h2>Shipments</h2>
+<a href="{% url 'shipment_create' %}" class="btn btn-primary">Add New Shipment</a>
+<table class="table mt-3">
+    <thead>
+        <tr>
+            <th>Tracking Number</th>
+            <th>Status</th>
+            <th>Origin</th>
+            <th>Destination</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for shipment in shipments %}
+        <tr>
+            <td>{{ shipment.tracking_number }}</td>
+            <td>{{ shipment.get_status_display }}</td>
+            <td>{{ shipment.origin }}</td>
+            <td>{{ shipment.destination }}</td>
+            <td>
+                <a href="{% url 'shipment_update' shipment.pk %}">Edit</a> |
+                <a href="{% url 'shipment_delete' shipment.pk %}">Delete</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5">No shipments available.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
