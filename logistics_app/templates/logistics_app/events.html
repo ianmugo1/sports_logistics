@@ -1,0 +1,35 @@
+{% extends 'logistics_app/base.html' %}
+
+{% block title %}Events{% endblock %}
+
+{% block content %}
+<h2>Events</h2>
+<a href="{% url 'event_create' %}" class="btn btn-primary">Add New Event</a>
+<table class="table mt-3">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Date</th>
+            <th>Location</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for event in events %}
+        <tr>
+            <td>{{ event.name }}</td>
+            <td>{{ event.date }}</td>
+            <td>{{ event.location }}</td>
+            <td>
+                <a href="{% url 'event_update' event.pk %}">Edit</a> |
+                <a href="{% url 'event_delete' event.pk %}">Delete</a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">No events available.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

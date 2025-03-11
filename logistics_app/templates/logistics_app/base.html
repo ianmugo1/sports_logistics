@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Sports Logistics{% endblock %}</title>
+  <!-- Bootstrap CSS (Bootstrap 4) -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+  <!-- Custom CSS -->
+  <style>
+    /* Global Styles */
+    body {
+      padding-top: 70px;
+      background: #f4f6f9;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #333;
+    }
+    /* Navbar */
+    .navbar {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    /* Jumbotron */
+    .jumbotron {
+      position: relative;
+      background: url('https://via.placeholder.com/1200x400') no-repeat center center;
+      background-size: cover;
+      border-radius: 0.5rem;
+      padding: 5rem 2rem;
+      color: #fff;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .jumbotron::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.7));
+      border-radius: 0.5rem;
+    }
+    .jumbotron > .container {
+      position: relative;
+      z-index: 1;
+    }
+    .jumbotron h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .jumbotron p.lead {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    /* Dashboard Cards */
+    .dashboard-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: none;
+      border-radius: 0.5rem;
+    }
+    .dashboard-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    /* Footer */
+    footer {
+      background-color: #fff;
+      padding: 20px 0;
+      text-align: center;
+      margin-top: 40px;
+      border-top: 1px solid #eaeaea;
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="{% url 'index' %}">Sports Logistics</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavDropdown"
+              aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+  
+      <div class="collapse navbar-collapse" id="navbarNavDropdown">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'shipment_list' %}">Shipments</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'order_list' %}">Orders</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'event_list' %}">Events</a>
+          </li>
+        </ul>
+        <ul class="navbar-nav">
+          {% if user.is_authenticated %}
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown"
+                 aria-haspopup="true" aria-expanded="false">
+                <i class="fas fa-user"></i> {{ user.username }}
+              </a>
+              <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
+                <a class="dropdown-item" href="{% url 'profile' %}">Profile</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item" href="{% url 'logout' %}">Logout</a>
+              </div>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'login' %}">Login</a>
+            </li>
+            <!-- Registration link removed to avoid NoReverseMatch error -->
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main container -->
+  <div class="container">
+    {% block content %}
+    <!-- Dashboard Hero Section -->
+    <div class="jumbotron mt-4">
+      <div class="container">
+        <h1 class="display-4">Welcome to Sports Logistics!</h1>
+        <p class="lead">Manage shipments, orders, events, and more from your central hub.</p>
+        <hr class="my-4">
+        <p>Access your dashboard to view metrics and navigate to key sections.</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'shipment_list' %}" role="button">View Shipments</a>
+      </div>
+    </div>
+
+    <!-- Dashboard Cards -->
+    <div class="row">
+      <div class="col-md-4">
+        <div class="card dashboard-card mb-4 shadow-sm">
+          <div class="card-body text-center">
+            <h5 class="card-title">Total Shipments</h5>
+            <p class="card-text display-4">{{ total_shipments }}</p>
+            <a href="{% url 'shipment_list' %}" class="btn btn-outline-primary btn-sm">View Shipments</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card dashboard-card mb-4 shadow-sm">
+          <div class="card-body text-center">
+            <h5 class="card-title">Pending Orders</h5>
+            <p class="card-text display-4">{{ pending_orders }}</p>
+            <a href="{% url 'order_list' %}" class="btn btn-outline-primary btn-sm">View Orders</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card dashboard-card mb-4 shadow-sm">
+          <div class="card-body text-center">
+            <h5 class="card-title">Upcoming Events</h5>
+            <p class="card-text display-4">{{ upcoming_events }}</p>
+            <a href="{% url 'event_list' %}" class="btn btn-outline-primary btn-sm">View Events</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endblock %}
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p class="text-muted">&copy; 2025 Sports Logistics. All Rights Reserved.</p>
+    </div>
+  </footer>
+
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

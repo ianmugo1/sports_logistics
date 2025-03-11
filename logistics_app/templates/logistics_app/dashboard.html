@@ -1,0 +1,79 @@
+{% extends 'logistics_app/base.html' %}
+
+{% block title %}Dashboard - Sports Logistics{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <h1 class="text-center mb-4">Dashboard</h1>
+
+  <!-- Dashboard Metrics Cards -->
+  <div class="row">
+    <div class="col-md-4 mb-4">
+      <div class="card dashboard-card shadow-sm">
+        <div class="card-body text-center">
+          <h5 class="card-title">Total Shipments</h5>
+          <p class="card-text display-4 text-primary">{{ total_shipments }}</p>
+          <a href="{% url 'shipment_list' %}" class="btn btn-outline-primary btn-sm">View Shipments</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-4">
+      <div class="card dashboard-card shadow-sm">
+        <div class="card-body text-center">
+          <h5 class="card-title">Pending Orders</h5>
+          <p class="card-text display-4 text-primary">{{ pending_orders }}</p>
+          <a href="{% url 'order_list' %}" class="btn btn-outline-primary btn-sm">View Orders</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-4">
+      <div class="card dashboard-card shadow-sm">
+        <div class="card-body text-center">
+          <h5 class="card-title">Upcoming Events</h5>
+          <p class="card-text display-4 text-primary">{{ upcoming_events }}</p>
+          <a href="{% url 'event_list' %}" class="btn btn-outline-primary btn-sm">View Events</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart Section -->
+  <div class="container my-5">
+    <h3 class="text-center mb-4">Shipments Over the Past 7 Days</h3>
+    <div class="position-relative" style="height: 350px;">
+      <canvas id="shipmentChart" style="max-height: 350px;"></canvas>
+    </div>
+  </div>
+</div>
+
+{% block extra_js %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const chartData = {{ shipments_by_date|safe }};
+    const labels = chartData.map(entry => entry.date);
+    const data = chartData.map(entry => entry.count);
+
+    const ctx = document.getElementById('shipmentChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Shipments',
+          data: data,
+          backgroundColor: 'rgba(25, 118, 210, 0.2)',
+          borderColor: 'rgba(25, 118, 210, 1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  </script>
+{% endblock %}
+{% endblock %}

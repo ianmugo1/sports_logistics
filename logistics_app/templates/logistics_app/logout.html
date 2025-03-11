@@ -1,0 +1,10 @@
+{% extends 'logistics_app/base.html' %}
+
+{% block title %}Logged Out{% endblock %}
+
+{% block content %}
+<div class="alert alert-info mt-4">
+  <h2>You have been logged out.</h2>
+  <p><a href="{% url 'login' %}">Login again</a></p>
+</div>
+{% endblock %}

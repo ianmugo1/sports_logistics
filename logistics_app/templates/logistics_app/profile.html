@@ -1,0 +1,51 @@
+{% extends 'logistics_app/base.html' %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>My Profile</h2>
+  <!-- Display current profile info -->
+  <div id="profile-info" class="mb-4">
+    <p><strong>Username:</strong> {{ request.user.username }}</p>
+    <p><strong>Email:</strong> {{ request.user.email }}</p>
+    <p><strong>Role:</strong> <span id="current-role">{{ request.user.profile.role }}</span></p>
+  </div>
+  <!-- Profile Update Form -->
+  <form id="profileForm" method="post" action="{% url 'profile' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+  </form>
+  <!-- Alert placeholder -->
+  <div id="profileAlert" class="alert alert-success mt-3" style="display: none;">
+    Profile updated successfully!
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script>
+$(document).ready(function(){
+  $("#profileForm").submit(function(e){
+    e.preventDefault(); // Prevent normal form submission
+
+    var form = $(this);
+    $.ajax({
+      url: form.attr("action"),
+      type: "POST",
+      data: form.serialize(),
+      success: function(response) {
+        // Use the updated role returned from the server.
+        $("#current-role").text(response.role);
+        $("#profileAlert").fadeIn().delay(2000).fadeOut();
+      },
+      error: function(xhr, errmsg, err) {
+        alert("An error occurred while updating your profile.");
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

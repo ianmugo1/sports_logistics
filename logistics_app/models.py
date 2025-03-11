@@ -96,3 +96,35 @@ class Payment(models.Model):
     
     def __str__(self):
         return f"Payment for Order {self.order.order_number}"
+
+# User Profile for Role Management
+
+class UserProfile(models.Model):
+    ROLE_CHOICES = [
+        ('warehouse_manager', 'Warehouse Manager'),
+        ('delivery_person', 'Delivery Person'),
+        ('customer', 'Customer'),
+    ]
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='customer')
+    
+    def __str__(self):
+        return f"{self.user.username} Profile"
+
+# Signals to automatically create and save user profiles
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=User)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        UserProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_user_profile(sender, instance, **kwargs):
+    # Check if the profile exists; if not, create it
+    if not hasattr(instance, 'profile'):
+        UserProfile.objects.create(user=instance)
+    else:
+        instance.profile.save()

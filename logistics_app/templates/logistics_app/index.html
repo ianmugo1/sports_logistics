@@ -1,0 +1,43 @@
+{% extends 'logistics_app/base.html' %}
+
+{% block title %}Welcome to Sports Logistics{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+  <div class="container text-center">
+    <h1 class="display-3 font-weight-bold">Effortless Logistics Management</h1>
+    <p class="lead">Track shipments, manage orders, and coordinate events with ease.</p>
+    <a class="btn btn-primary btn-lg mt-4" href="{% url 'dashboard' %}">Go to Dashboard</a>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div class="container my-5">
+  <h2 class="text-center mb-4">Why Choose Sports Logistics?</h2>
+  <div class="row text-center">
+    <div class="col-md-4">
+      <i class="fas fa-shipping-fast fa-3x text-primary"></i>
+      <h4 class="mt-3">Fast & Reliable</h4>
+      <p>Ensure timely deliveries and seamless tracking across all shipments.</p>
+    </div>
+    <div class="col-md-4">
+      <i class="fas fa-chart-line fa-3x text-primary"></i>
+      <h4 class="mt-3">Real-Time Insights</h4>
+      <p>Monitor your logistics performance with dynamic analytics.</p>
+    </div>
+    <div class="col-md-4">
+      <i class="fas fa-user-shield fa-3x text-primary"></i>
+      <h4 class="mt-3">Secure Access</h4>
+      <p>Role-based authentication ensures only authorised personnel access data.</p>
+    </div>
+  </div>
+</div>
+
+<!-- CTA Section -->
+<div class="cta-section text-center">
+  <h2>Ready to Get Started?</h2>
+  <p class="lead">Sign up today and take control of your logistics management.</p>
+  <a class="btn btn-light btn-lg" href="{% url 'register' %}">Create an Account</a>
+</div>
+{% endblock %}
