@@ -1,0 +1,66 @@
+/* logistics_app/static/logistics_app/css/custom.css */
+
+/* Global Styles */
+body {
+    padding-top: 70px;
+    background: #f4f6f9;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #333;
+  }
+  /* Navbar */
+  .navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  /* Jumbotron */
+  .jumbotron {
+    position: relative;
+    background: url('https://via.placeholder.com/1200x400') no-repeat center center;
+    background-size: cover;
+    border-radius: 0.5rem;
+    padding: 5rem 2rem;
+    color: #fff;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .jumbotron::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(0,0,0,0.5), rgba(0,0,0,0.7));
+    border-radius: 0.5rem;
+  }
+  .jumbotron > .container {
+    position: relative;
+    z-index: 1;
+  }
+  .jumbotron h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  .jumbotron p.lead {
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  /* Dashboard Cards */
+  .dashboard-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    border-radius: 0.5rem;
+  }
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  }
+  /* Footer */
+  footer {
+    background-color: #fff;
+    padding: 20px 0;
+    text-align: center;
+    margin-top: 40px;
+    border-top: 1px solid #eaeaea;
+  }
+  

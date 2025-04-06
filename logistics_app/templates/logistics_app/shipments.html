@@ -5,8 +5,14 @@
 {% block content %}
 <div class="container mt-4">
   <h2>Shipments</h2>
-
-  <!-- Button to trigger modal -->
+  
+  <!-- Search Form -->
+  <form method="get" class="form-inline mb-3">
+    <input type="text" name="q" class="form-control mr-2" placeholder="Search shipments..." value="{{ search_query }}">
+    <button type="submit" class="btn btn-outline-primary">Search</button>
+  </form>
+  
+  <!-- Button to trigger modal for creating a new shipment -->
   <button type="button" class="btn btn-success mb-3" data-toggle="modal" data-target="#createShipmentModal">
     Create New Shipment
   </button>
@@ -17,7 +23,7 @@
   </div>
 
   <!-- Shipments Table -->
-  <table class="table">
+  <table class="table table-striped">
     <thead>
       <tr>
         <th>Tracking Number</th>
@@ -35,8 +41,8 @@
         <td>{{ shipment.origin }}</td>
         <td>{{ shipment.destination }}</td>
         <td>
-          <a href="{% url 'shipment_update' shipment.pk %}">Edit</a> |
-          <a href="{% url 'shipment_delete' shipment.pk %}">Delete</a>
+          <a href="{% url 'shipment_update' shipment.pk %}" class="btn btn-sm btn-warning">Edit</a>
+          <a href="{% url 'shipment_delete' shipment.pk %}" class="btn btn-sm btn-danger">Delete</a>
         </td>
       </tr>
       {% empty %}
@@ -44,13 +50,8 @@
         <td colspan="5">No shipments available.</td>
       </tr>
       {% endfor %}
-    </thead>
+    </tbody>
   </table>
-
-  <!-- Button to trigger modal -->
-  <button type="button" class="btn btn-success mb-3" data-toggle="modal" data-target="#createShipmentModal">
-    Create New Shipment
-  </button>
 
   <!-- Create Shipment Modal -->
   <div class="modal fade" id="createShipmentModal" tabindex="-1" aria-labelledby="createShipmentModalLabel" aria-hidden="true">
@@ -59,8 +60,10 @@
         <form id="createShipmentForm" method="post" action="{% url 'shipment_create' %}">
           {% csrf_token %}
           <div class="modal-header">
-            <h5 class="modal-title">Create Shipment</h5>
-            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h5 class="modal-title" id="createShipmentModalLabel">Create Shipment</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
           <div class="modal-body">
             {{ form.as_p }}
@@ -90,6 +93,7 @@ $(document).ready(function() {
       success: function(response) {
         $("#shipmentSuccessAlert").fadeIn().delay(2000).fadeOut();
         $("#createShipmentModal").modal("hide");
+        // Optionally, update the table without a full page reload:
         setTimeout(function(){ location.reload(); }, 2000);
       },
       error: function(xhr, errmsg, err) {

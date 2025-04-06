@@ -1,0 +1,42 @@
+digraph UseCase {
+    rankdir=LR;
+    fontsize=10;
+    node [shape=ellipse, fontname="Arial", fontsize=10];
+    
+    // Define Use Cases
+    Place_Manage_Orders [label="Place & Manage Orders\n(Customer selects and manages orders)"];
+    Process_Payment [label="Process Payment\n(Secure transaction processing)"];
+    Manage_Shipments [label="Manage Shipments\n(Logistics: Parcel – Contents)"];
+    Track_Deliveries [label="Track Deliveries\n(Update & monitor shipment status)"];
+    Update_Inventory [label="Update & Maintain Inventory\n(Stock management and replenishment)"];
+    Generate_Reports [label="Generate Comprehensive Logistics Reports\n(Order, shipment, and inventory insights)"];
+
+    // Define Actors as separate nodes (using box shape)
+    node [shape=box, fontname="Arial", fontsize=10];
+    Sports_Event_Organiser [label="Sports Event Organiser\n(Coordinates overall logistics)"];
+    Customer [label="Customer\n(Places orders and tracks deliveries)"];
+    Warehouse_Manager [label="Warehouse Manager\n(Manages inventory and shipment preparation)"];
+    Delivery_Person [label="Delivery Person\n(Manages delivery updates and statuses)"];
+
+    // Revert back to ellipse for connections from actors to use cases
+    node [shape=ellipse];
+
+    // Associations from Actors to Use Cases
+    Sports_Event_Organiser -> Place_Manage_Orders [label="oversees"];
+    Sports_Event_Organiser -> Manage_Shipments [label="schedules"];
+    Sports_Event_Organiser -> Generate_Reports [label="monitors"];
+
+    Customer -> Place_Manage_Orders [label="initiates"];
+    Customer -> Process_Payment [label="executes"];
+    Customer -> Track_Deliveries [label="views"];
+
+    Warehouse_Manager -> Update_Inventory [label="updates"];
+    Warehouse_Manager -> Manage_Shipments [label="prepares"];
+
+    Delivery_Person -> Track_Deliveries [label="updates status"];
+    Delivery_Person -> Manage_Shipments [label="assists"];
+
+    // Optionally, show relationships between use cases if needed (dotted lines)
+    Process_Payment -> Place_Manage_Orders [style=dotted, label="supports"];
+    Manage_Shipments -> Process_Payment [style=dotted, label="requires confirmation"];
+}
