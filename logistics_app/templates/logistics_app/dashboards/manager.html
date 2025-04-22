@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Manager Dashboard{% endblock %}
+{% block content %}
+<div class="py-4">
+  <h1 class="mb-3">Warehouse Manager Dashboard</h1>
+  <p class="lead">Hello, <strong>{{ request.user.username }}</strong>! Manage your shipments below.</p>
+
+  <a href="{% url 'shipment_create' %}" class="btn btn-success mb-4">Create New Shipment</a>
+
+  <h4>Recent Shipments (Last 7 days)</h4>
+  <ul class="list-group mb-4">
+    {% for s in shipments_by_date %}
+      <li class="list-group-item d-flex justify-content-between">
+        <span>{{ s.date }}</span>
+        <span>{{ s.count }} shipments</span>
+      </li>
+    {% endfor %}
+  </ul>
+
+  <h4>All Shipments</h4>
+  <a href="{% url 'shipment_list' %}" class="btn btn-primary">View Shipments</a>
+</div>
+{% endblock %}

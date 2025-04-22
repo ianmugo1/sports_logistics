@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Customer Dashboard{% endblock %}
+{% block content %}
+<div class="py-4 text-center">
+  <h1 class="mb-3">Welcome, {{ request.user.username }}!</h1>
+  <p class="lead">Track your shipments or browse available events.</p>
+  <div class="d-flex justify-content-center gap-3">
+    <a href="{% url 'track_shipment' %}" class="btn btn-primary btn-lg">Track Shipment</a>
+    <a href="{% url 'event_list' %}" class="btn btn-secondary btn-lg">View Events</a>
+  </div>
+</div>
+{% endblock %}

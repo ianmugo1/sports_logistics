@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Logistics Analytics{% endblock %}
+{% block extra_head %}
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+
+  <h2 class="mb-4">📊 Logistics Performance</h2>
+
+  <div class="row mb-5">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Shipments (Last 7 Days)</div>
+        <div class="card-body">
+          <canvas id="chartShipments"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Orders by Status</div>
+        <div class="card-body">
+          <canvas id="chartOrders"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header">Average Delivery Time (30d)</div>
+        <div class="card-body">
+          <h3 id="avgDelivery" class="text-center"></h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 d-flex align-items-center justify-content-center">
+      <button id="btnReload" class="btn btn-outline-primary">
+        <i class="fas fa-sync-alt"></i> Reload Analytics
+      </button>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const url = "{% url 'analytics_data' %}";
+
+  // Chart.js instances
+  let shipmentsChart, ordersChart;
+
+  function fetchAndRender() {
+    fetch(url).then(r => r.json()).then(data => {
+      // --- Shipments Line Chart ---
+      const shipLabels = data.shipments_by_date.map(d=>d.date);
+      const shipCounts = data.shipments_by_date.map(d=>d.count);
+
+      if (shipmentsChart) shipmentsChart.destroy();
+      const ctx1 = document.getElementById('chartShipments').getContext('2d');
+      shipmentsChart = new Chart(ctx1, {
+        type: 'line',
+        data: {
+          labels: shipLabels,
+          datasets: [{ label: 'Shipments', data: shipCounts, fill:false, tension:0.2 }]
+        },
+        options: { scales: { y: { beginAtZero:true } } }
+      });
+
+      // --- Orders Pie Chart ---
+      const orderLabels = data.orders_by_status.map(o=>o.status);
+      const orderCounts = data.orders_by_status.map(o=>o.count);
+
+      if (ordersChart) ordersChart.destroy();
+      const ctx2 = document.getElementById('chartOrders').getContext('2d');
+      ordersChart = new Chart(ctx2, {
+        type: 'pie',
+        data: {
+          labels: orderLabels,
+          datasets: [{ data: orderCounts }]
+        }
+      });
+
+      // --- Avg Delivery Time ---
+      const avgSec = data.avg_delivery_seconds;
+      const avgHrs = avgSec ? (avgSec/3600).toFixed(1) : 'N/A';
+      document.getElementById('avgDelivery').textContent = avgHrs + ' hours';
+    });
+  }
+
+  document.getElementById('btnReload')
+          .addEventListener('click', fetchAndRender);
+
+  // Initial load
+  fetchAndRender();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Shipment {{ shipment.tracking_number }}{% endblock %}
+{% block content %}
+  <h2>Shipment {{ shipment.tracking_number }}</h2>
+  <ul class="list-group mb-4">
+    <li class="list-group-item"><strong>Status:</strong> {{ shipment.status }}</li>
+    <li class="list-group-item"><strong>Origin:</strong> {{ shipment.origin }}</li>
+    <li class="list-group-item"><strong>Destination:</strong> {{ shipment.destination }}</li>
+    <li class="list-group-item"><strong>Contents:</strong> {{ shipment.contents }}</li>
+    <li class="list-group-item"><strong>Created:</strong> {{ shipment.date_created }}</li>
+    {% if shipment.date_delivered %}
+      <li class="list-group-item"><strong>Delivered:</strong> {{ shipment.date_delivered }}</li>
+    {% endif %}
+  </ul>
+  <a href="{% url 'track_shipment' %}" class="btn btn-outline-primary">Back to Search</a>
+{% endblock %}

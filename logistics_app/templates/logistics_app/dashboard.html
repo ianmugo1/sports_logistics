@@ -1,86 +1,133 @@
-{% extends 'logistics_app/base.html' %}
+{% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Dashboard - Sports Logistics{% endblock %}
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+  <!-- Chart.js for graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-  <h1 class="mb-4">Dashboard</h1>
 
-  <!-- Summary Cards -->
-  <div class="row">
-    <div class="col-md-4 mb-3">
-      <div class="card bg-primary text-white shadow">
-        <div class="card-body text-center">
-          <h5 class="card-title">Total Shipments</h5>
-          <p class="display-4">{{ total_shipments }}</p>
+  <!-- Summary Cards (now clickable) -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <a href="{% url 'shipment_list' %}" class="text-decoration-none text-reset">
+        <div class="card text-center shadow-sm hover-shadow">
+          <div class="card-body">
+            <h5 class="card-title">Total Shipments</h5>
+            <p class="display-4">{{ total_shipments }}</p>
+          </div>
         </div>
-      </div>
+      </a>
     </div>
-    <div class="col-md-4 mb-3">
-      <div class="card bg-warning text-dark shadow">
-        <div class="card-body text-center">
-          <h5 class="card-title">Pending Orders</h5>
-          <p class="display-4">{{ pending_orders }}</p>
+    <div class="col-md-4">
+      <a href="{% url 'order_list' %}" class="text-decoration-none text-reset">
+        <div class="card text-center shadow-sm hover-shadow">
+          <div class="card-body">
+            <h5 class="card-title">Pending Orders</h5>
+            <p class="display-4">{{ pending_orders }}</p>
+          </div>
         </div>
-      </div>
+      </a>
     </div>
-    <div class="col-md-4 mb-3">
-      <div class="card bg-success text-white shadow">
-        <div class="card-body text-center">
-          <h5 class="card-title">Upcoming Events</h5>
-          <p class="display-4">{{ upcoming_events }}</p>
+    <div class="col-md-4">
+      <a href="{% url 'event_list' %}" class="text-decoration-none text-reset">
+        <div class="card text-center shadow-sm hover-shadow">
+          <div class="card-body">
+            <h5 class="card-title">Upcoming Events</h5>
+            <p class="display-4">{{ upcoming_events }}</p>
+          </div>
         </div>
-      </div>
+      </a>
     </div>
   </div>
 
-  <!-- Shipments Chart -->
-  <div class="mt-4 text-center">
-    <h5 class="mb-3">Shipments in the Past 7 Days</h5>
-    <div class="chart-container mx-auto" style="max-width: 700px; height: 500px;">
-      <canvas id="shipmentChart"></canvas>
+  <!-- 7‑Day Shipments Line Chart -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header">
+      Shipments in the Last 7 Days
+    </div>
+    <div class="card-body">
+      <canvas id="shipmentsChart" height="100"></canvas>
     </div>
   </div>
+
+  <!-- Recent Shipments -->
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header">
+      Recent Shipments
+    </div>
+    <div class="card-body">
+      {% if recent_shipments %}
+        <ul class="list-group">
+          {% for s in recent_shipments %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <a href="{% url 'shipment_detail' s.pk %}">{{ s.tracking_number }}</a>
+              <span class="badge
+                {% if s.status == 'DELIVERED' %}badge-success
+                {% elif s.status == 'PENDING' %}badge-warning
+                {% else %}badge-secondary{% endif %}">
+                {{ s.status }}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">No shipments in the last week.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <a href="{% url 'shipment_create' %}" class="btn btn-primary btn-block">
+        <i class="fas fa-shipping-fast"></i> New Shipment
+      </a>
+    </div>
+    <div class="col-md-4">
+      <a href="{% url 'order_create' %}" class="btn btn-success btn-block">
+        <i class="fas fa-shopping-cart"></i> New Order
+      </a>
+    </div>
+    <div class="col-md-4">
+      <a href="{% url 'event_create' %}" class="btn btn-info btn-block">
+        <i class="fas fa-calendar-plus"></i> New Event
+      </a>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
 {% block extra_js %}
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      // Expect shipments_by_date to be a JSON list of objects with 'date' and 'count'
-      const chartData = {{ shipments_by_date|safe }};
-      const labels = chartData.map(entry => entry.date);
-      const data = chartData.map(entry => entry.count);
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const dates  = {{ date_labels|safe }};
+  const counts = {{ shipment_counts|safe }};
 
-      const ctx = document.getElementById('shipmentChart').getContext('2d');
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Shipments',
-            data: data,
-            backgroundColor: 'rgba(54, 162, 235, 0.7)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false, 
-          layout: { padding: 10 },
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { precision: 0 }
-            }
-          }
-        }
-      });
-    });
-  </script>
+  const ctx = document.getElementById('shipmentsChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [{
+        label: 'Shipments',
+        data: counts,
+        fill: false,
+        tension: 0.1
+      }]
+    },
+    options: {
+      scales: {
+        x: { title: { display: true, text: 'Date' } },
+        y: { title: { display: true, text: 'Number of Shipments' }, beginAtZero: true }
+      }
+    }
+  });
+});
+</script>
 {% endblock %}

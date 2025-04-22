@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Event: {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>{{ event.name }}</h2>
+    <div>
+      <a href="{% url 'event_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Events
+      </a>
+      {% if user.profile.role == 'admin' or user.is_superuser %}
+        <a href="{% url 'event_update' event.pk %}" class="btn btn-warning">
+          <i class="fas fa-edit"></i> Edit
+        </a>
+        <a href="{% url 'event_delete' event.pk %}" class="btn btn-danger">
+          <i class="fas fa-trash-alt"></i> Delete
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header">Details</div>
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item"><strong>Date:</strong> {{ event.date|date:"Y-m-d H:i" }}</li>
+      <li class="list-group-item"><strong>Location:</strong> {{ event.location }}</li>
+      <li class="list-group-item"><strong>Description:</strong> 
+        {% if event.description %}{{ event.description }}{% else %}<span class="text-muted">—</span>{% endif %}
+      </li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

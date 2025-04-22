@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Shipment {{ shipment.tracking_number }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Shipment {{ shipment.tracking_number }}</h2>
+    <div>
+      <a href="{% url 'shipment_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to List
+      </a>
+      {% if user.profile.role == 'warehouse_manager' or user.is_superuser %}
+        <a href="{% url 'shipment_update' shipment.pk %}" class="btn btn-warning">
+          <i class="fas fa-edit"></i> Edit
+        </a>
+        <a href="{% url 'shipment_delete' shipment.pk %}" class="btn btn-danger">
+          <i class="fas fa-trash-alt"></i> Delete
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header">
+      Details
+    </div>
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item"><strong>Status:</strong> {{ shipment.status }}</li>
+      <li class="list-group-item"><strong>Origin:</strong> {{ shipment.origin }}</li>
+      <li class="list-group-item"><strong>Destination:</strong> {{ shipment.destination }}</li>
+      <li class="list-group-item"><strong>Contents:</strong> {{ shipment.contents|default:"—" }}</li>
+      <li class="list-group-item"><strong>Created:</strong> {{ shipment.date_created|date:"Y-m-d H:i" }}</li>
+      <li class="list-group-item">
+        <strong>Delivered:</strong>
+        {% if shipment.date_delivered %}
+          {{ shipment.date_delivered|date:"Y-m-d H:i" }}
+        {% else %}
+          <span class="text-muted">Not yet delivered</span>
+        {% endif %}
+      </li>
+      {% if shipment.event %}
+        <li class="list-group-item">
+          <strong>Event:</strong>
+          <a href="{% url 'event_detail' shipment.event.pk %}">{{ shipment.event.name }}</a>
+        </li>
+      {% endif %}
+      {% if shipment.delivery_person %}
+        <li class="list-group-item">
+          <strong>Delivery Person:</strong> {{ shipment.delivery_person.get_full_name|default:shipment.delivery_person.username }}
+        </li>
+      {% endif %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

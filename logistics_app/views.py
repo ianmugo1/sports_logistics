@@ -9,228 +9,317 @@ from django.http import JsonResponse
 from datetime import timedelta
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django.db.models import Q  # For search filtering
+from django.db.models import Q, Count, Avg, F, ExpressionWrapper, DurationField
+from django.contrib import messages
 
-from .models import Shipment, Order, Event, UserProfile
-from .forms import ShipmentForm, OrderForm, EventForm, UserProfileForm, UserRegistrationForm
+from .models import Shipment, Order, Event, UserProfile, Warehouse
+from .forms import (
+    ShipmentForm, OrderForm, EventForm,
+    UserProfileForm, UserRegistrationForm, WarehouseForm
+)
 from .serializers import ShipmentSerializer, OrderSerializer, EventSerializer
 
 
 # ====================================
-# Custom Mixin for Role-Based Access
+# Custom Mixin for Role‑Based Access
 # ====================================
 class RoleRequiredMixin(UserPassesTestMixin):
-    """
-    Mixin to enforce role-based access control.
-    Set `allowed_roles` as a list of roles that can access the view.
-    """
     allowed_roles = []
 
     def test_func(self):
         user = self.request.user
-        return user.is_authenticated and hasattr(user, 'profile') and user.profile.role in self.allowed_roles
+        if user.is_superuser:
+            return True
+        return (
+            user.is_authenticated and
+            hasattr(user, 'profile') and
+            user.profile.role in self.allowed_roles
+        )
 
     def handle_no_permission(self):
-        return redirect('dashboard')  # Redirect to dashboard instead of login
+        return redirect('dashboard')
 
 
 # ====================================
-# User Authentication & Profile Views
+# Authentication & Profile Views
 # ====================================
-
 def register(request):
-    """ Handles user registration & assigns roles via UserProfile model. """
+    """User registration with role assignment."""
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             new_user = form.save(commit=False)
             new_user.set_password(form.cleaned_data['password'])
             new_user.save()
-            UserProfile.objects.get_or_create(user=new_user, defaults={'role': form.cleaned_data['role']})
+            UserProfile.objects.get_or_create(
+                user=new_user,
+                defaults={'role': form.cleaned_data['role']}
+            )
             login(request, new_user)
             return redirect('dashboard')
     else:
         form = UserRegistrationForm()
-    
     return render(request, 'logistics_app/register.html', {'form': form})
 
 
 @login_required
 def profile_view(request):
-    """ Renders & processes user profile updates. Supports AJAX updates. """
+    """View & update user profile (AJAX supported)."""
     if request.method == 'POST':
         form = UserProfileForm(request.POST, instance=request.user.profile)
         if form.is_valid():
             profile = form.save()
-            profile.refresh_from_db()
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'status': 'success', 'role': profile.role})
             return redirect('profile')
     else:
         form = UserProfileForm(instance=request.user.profile)
-    
     return render(request, 'logistics_app/profile.html', {'form': form})
 
 
 # ====================================
-# Home & Dashboard Views
+# Landing & Dashboard
 # ====================================
-
 def index(request):
-    """ Landing page with an introduction to Sports Logistics. """
+    """Landing page."""
     return render(request, 'logistics_app/index.html')
 
 
 @login_required
 def dashboard(request):
-    """ The main dashboard displaying statistics and analytics. """
-    total_shipments = Shipment.objects.count()
-    pending_orders = Order.objects.filter(status='PENDING').count()
-    upcoming_events = Event.objects.filter(date__gte=timezone.now()).count()
-
+    """
+    Single dashboard view:
+      - summary stats
+      - 7‑day shipments chart (date_labels, shipment_counts)
+      - recent shipments list
+    """
     today = timezone.now().date()
+
+    # Shipments per day (last 7 days)
     shipments_by_date = [
-        {'date': (today - timedelta(days=i)).strftime("%Y-%m-%d"),
-         'count': Shipment.objects.filter(date_created__date=today - timedelta(days=i)).count()}
+        {
+            'date': (today - timedelta(days=i)).strftime("%Y-%m-%d"),
+            'count': Shipment.objects.filter(
+                date_created__date=today - timedelta(days=i)
+            ).count()
+        }
         for i in range(6, -1, -1)
     ]
 
+    # Extract two simple lists for Chart.js
+    date_labels     = [d['date']  for d in shipments_by_date]
+    shipment_counts = [d['count'] for d in shipments_by_date]
+
+    # 5 most recent shipments
+    recent_shipments = Shipment.objects.filter(
+        date_created__date__gte=today - timedelta(days=7)
+    ).order_by('-date_created')[:5]
+
     context = {
-        'total_shipments': total_shipments,
-        'pending_orders': pending_orders,
-        'upcoming_events': upcoming_events,
-        'shipments_by_date': shipments_by_date,
+        'total_shipments':   Shipment.objects.count(),
+        'pending_orders':    Order.objects.filter(status='PENDING').count(),
+        'upcoming_events':   Event.objects.filter(date__gte=timezone.now()).count(),
+        'date_labels':       date_labels,
+        'shipment_counts':   shipment_counts,
+        'recent_shipments':  recent_shipments,
     }
     return render(request, 'logistics_app/dashboard.html', context)
 
 
 # ====================================
-# Shipment CRUD Views
+# Analytics Endpoints & View
 # ====================================
+@login_required
+def analytics_data(request):
+    """
+    Returns JSON:
+      - shipments_by_date (last 7 days)
+      - orders_by_status
+      - avg delivery time (last 30 days, in seconds)
+    """
+    today = timezone.now().date()
+    shipments_by_date = [
+        {
+            'date': (today - timedelta(days=i)).strftime("%Y-%m-%d"),
+            'count': Shipment.objects.filter(
+                date_created__date=today - timedelta(days=i)
+            ).count()
+        }
+        for i in range(6, -1, -1)
+    ]
+    orders_by_status = list(
+        Order.objects
+             .values('status')
+             .annotate(count=Count('id'))
+             .order_by('status')
+    )
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    avg_delta = Shipment.objects.filter(
+        date_delivered__gte=thirty_days_ago
+    ).annotate(
+        delivery_time=ExpressionWrapper(
+            F('date_delivered') - F('date_created'),
+            output_field=DurationField()
+        )
+    ).aggregate(avg=Avg('delivery_time'))['avg']
+    avg_seconds = avg_delta.total_seconds() if avg_delta else None
 
+    return JsonResponse({
+        'shipments_by_date':    shipments_by_date,
+        'orders_by_status':     orders_by_status,
+        'avg_delivery_seconds': avg_seconds,
+    })
+
+
+@login_required
+def analytics_view(request):
+    """Renders the analytics dashboard shell."""
+    return render(request, 'logistics_app/analytics.html')
+
+
+# ====================================
+# Shipment Tracking View
+# ====================================
+def track_shipment(request):
+    """
+    Search by full or partial tracking number:
+      - if exactly 1 match → detail view
+      - otherwise → list view
+    """
+    term = (request.GET.get('tracking_number') or "").strip()
+    if term:
+        shipments = Shipment.objects.filter(tracking_number__icontains=term)
+    else:
+        shipments = Shipment.objects.none()
+
+    if term and shipments.count() == 1:
+        return render(request, 'logistics_app/track_shipment_detail.html', {
+            'shipment': shipments.first()
+        })
+
+    return render(request, 'logistics_app/track_shipment_list.html', {
+        'shipments':   shipments,
+        'search_term': term,
+    })
+
+
+# ====================================
+# Shipment CRUD
+# ====================================
 class ShipmentListView(LoginRequiredMixin, ListView):
-    """ Displays a list of shipments with AJAX support for tracking and search filtering. """
     model = Shipment
     template_name = 'logistics_app/shipments.html'
     context_object_name = 'shipments'
 
     def get_queryset(self):
-        # Start with the base queryset
-        queryset = super().get_queryset()
-        # Get search query from URL (e.g., ?q=search_term)
-        query = self.request.GET.get('q')
-        if query:
-            queryset = queryset.filter(
-                Q(tracking_number__icontains=query) |
-                Q(origin__icontains=query) |
-                Q(destination__icontains=query)
+        qs = super().get_queryset()
+        q  = self.request.GET.get('q')
+        if q:
+            qs = qs.filter(
+                Q(tracking_number__icontains=q) |
+                Q(origin__icontains=q) |
+                Q(destination__icontains=q)
             )
-        return queryset
+        return qs
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # Pass the search query back to the template for display
-        context['search_query'] = self.request.GET.get('q', '')
-        context['form'] = ShipmentForm()
-        return context
+        ctx = super().get_context_data(**kwargs)
+        ctx['search_query'] = self.request.GET.get('q', '')
+        ctx['form']         = ShipmentForm()
+        return ctx
 
 
 class ShipmentDetailView(LoginRequiredMixin, DetailView):
-    """ Displays detailed information about a shipment. """
     model = Shipment
     template_name = 'logistics_app/shipment_detail.html'
     context_object_name = 'shipment'
 
 
 class ShipmentCreateView(RoleRequiredMixin, CreateView):
-    """ Allows warehouse managers to create shipments. """
     allowed_roles = ['warehouse_manager']
-    model = Shipment
-    form_class = ShipmentForm
+    model         = Shipment
+    form_class    = ShipmentForm
     template_name = 'logistics_app/shipment_form.html'
-    success_url = reverse_lazy('shipment_list')
+    success_url   = reverse_lazy('shipment_list')
 
 
 class ShipmentUpdateView(RoleRequiredMixin, UpdateView):
-    """ Allows authorized users to update shipment details. """
     allowed_roles = ['warehouse_manager']
-    model = Shipment
-    form_class = ShipmentForm
+    model         = Shipment
+    form_class    = ShipmentForm
     template_name = 'logistics_app/shipment_form.html'
-    success_url = reverse_lazy('shipment_list')
+    success_url   = reverse_lazy('shipment_list')
 
 
 class ShipmentDeleteView(RoleRequiredMixin, DeleteView):
-    """ Allows warehouse managers to delete shipments. """
     allowed_roles = ['warehouse_manager']
-    model = Shipment
+    model         = Shipment
     template_name = 'logistics_app/shipment_confirm_delete.html'
-    success_url = reverse_lazy('shipment_list')
+    success_url   = reverse_lazy('shipment_list')
 
 
 # ====================================
-# Order CRUD Views
+# Order CRUD
 # ====================================
-
 class OrderListView(LoginRequiredMixin, ListView):
     model = Order
     template_name = 'logistics_app/orders.html'
     context_object_name = 'orders'
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        query = self.request.GET.get('q')
-        if query:
-            queryset = queryset.filter(
-                Q(order_number__icontains=query) |
-                Q(status__icontains=query)
+        qs = super().get_queryset()
+        q  = self.request.GET.get('q')
+        if q:
+            qs = qs.filter(
+                Q(order_number__icontains=q) |
+                Q(status__icontains=q)
             )
-        return queryset
+        return qs
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['search_query'] = self.request.GET.get('q', '')
-        # Provide an instance of OrderForm if the user is an admin.
+        ctx = super().get_context_data(**kwargs)
+        ctx['search_query'] = self.request.GET.get('q', '')
         if self.request.user.profile.role == 'admin':
-            context['form'] = OrderForm()
-        return context
+            ctx['form'] = OrderForm()
+        return ctx
 
 
 class OrderDetailView(LoginRequiredMixin, DetailView):
-    model = Order
-    template_name = 'logistics_app/order_detail.html'
+    model             = Order
+    template_name     = 'logistics_app/order_detail.html'
     context_object_name = 'order'
 
 
 class OrderCreateView(RoleRequiredMixin, CreateView):
     allowed_roles = ['admin']
-    model = Order
-    form_class = OrderForm
+    model         = Order
+    form_class    = OrderForm
     template_name = 'logistics_app/order_form.html'
-    success_url = reverse_lazy('order_list')
+    success_url   = reverse_lazy('order_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, "Order created successfully!")
+        return super().form_valid(form)
 
 
 class OrderUpdateView(RoleRequiredMixin, UpdateView):
     allowed_roles = ['admin']
-    model = Order
-    form_class = OrderForm
+    model         = Order
+    form_class    = OrderForm
     template_name = 'logistics_app/order_form.html'
-    success_url = reverse_lazy('order_list')
+    success_url   = reverse_lazy('order_list')
 
 
 class OrderDeleteView(RoleRequiredMixin, DeleteView):
     allowed_roles = ['admin']
-    model = Order
+    model         = Order
     template_name = 'logistics_app/order_confirm_delete.html'
-    success_url = reverse_lazy('order_list')
+    success_url   = reverse_lazy('order_list')
 
 
 # ====================================
-# Event CRUD Views
+# Event CRUD
 # ====================================
-
 class EventListView(LoginRequiredMixin, ListView):
     model = Event
     template_name = 'logistics_app/events.html'
@@ -245,45 +334,76 @@ class EventDetailView(LoginRequiredMixin, DetailView):
 
 class EventCreateView(RoleRequiredMixin, CreateView):
     allowed_roles = ['admin']
-    model = Event
-    form_class = EventForm
+    model         = Event
+    form_class    = EventForm
     template_name = 'logistics_app/event_form.html'
-    success_url = reverse_lazy('event_list')
+    success_url   = reverse_lazy('event_list')
 
 
 class EventUpdateView(RoleRequiredMixin, UpdateView):
     allowed_roles = ['admin']
-    model = Event
-    form_class = EventForm
+    model         = Event
+    form_class    = EventForm
     template_name = 'logistics_app/event_form.html'
-    success_url = reverse_lazy('event_list')
+    success_url   = reverse_lazy('event_list')
 
 
 class EventDeleteView(RoleRequiredMixin, DeleteView):
     allowed_roles = ['admin']
-    model = Event
+    model         = Event
     template_name = 'logistics_app/event_confirm_delete.html'
-    success_url = reverse_lazy('event_list')
+    success_url   = reverse_lazy('event_list')
 
 
 # ====================================
-# API ViewSets (Django REST Framework)
+# Warehouse CRUD
 # ====================================
+class WarehouseListView(RoleRequiredMixin, ListView):
+    allowed_roles      = ['admin', 'warehouse_manager']
+    model              = Warehouse
+    template_name      = 'logistics_app/warehouses.html'
+    context_object_name = 'warehouses'
 
+
+class WarehouseCreateView(RoleRequiredMixin, CreateView):
+    allowed_roles = ['admin', 'warehouse_manager']
+    model         = Warehouse
+    form_class    = WarehouseForm
+    template_name = 'logistics_app/warehouse_form.html'
+    success_url   = reverse_lazy('warehouse_list')
+
+
+class WarehouseUpdateView(RoleRequiredMixin, UpdateView):
+    allowed_roles = ['admin', 'warehouse_manager']
+    model         = Warehouse
+    form_class    = WarehouseForm
+    template_name = 'logistics_app/warehouse_form.html'
+    success_url   = reverse_lazy('warehouse_list')
+
+
+class WarehouseDeleteView(RoleRequiredMixin, DeleteView):
+    allowed_roles = ['admin']
+    model         = Warehouse
+    template_name = 'logistics_app/warehouse_confirm_delete.html'
+    success_url   = reverse_lazy('warehouse_list')
+
+
+# ====================================
+# API ViewSets
+# ====================================
 class ShipmentViewSet(viewsets.ModelViewSet):
-    """ API Endpoint for managing shipments """
-    queryset = Shipment.objects.all()
+    queryset         = Shipment.objects.all()
     serializer_class = ShipmentSerializer
     permission_classes = [IsAuthenticated]
 
 
 class OrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all()
+    queryset         = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
 
 class EventViewSet(viewsets.ModelViewSet):
-    queryset = Event.objects.all()
+    queryset         = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]

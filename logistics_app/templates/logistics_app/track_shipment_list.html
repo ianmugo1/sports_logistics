@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Track Shipments{% endblock %}
+{% block content %}
+  <h2>Track Shipment</h2>
+  <form method="get" class="mb-3">
+    <div class="input-group">
+      <input name="tracking_number" class="form-control" placeholder="Enter tracking number" value="{{ search_term }}">
+      <button class="btn btn-primary">Search</button>
+    </div>
+  </form>
+
+  {% if search_term %}
+    {% if shipments %}
+      <h5>{{ shipments.count }} matching shipment{{ shipments.count|pluralize }}</h5>
+      <ul class="list-group">
+        {% for s in shipments %}
+          <li class="list-group-item">
+            <a href="{% url 'track_shipment' %}?tracking_number={{ s.tracking_number }}">
+              {{ s.tracking_number }} — {{ s.status }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="alert alert-danger">
+        No shipments found matching “<strong>{{ search_term }}</strong>”.
+      </div>
+    {% endif %}
+  {% endif %}
+{% endblock %}
