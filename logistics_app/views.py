@@ -407,3 +407,17 @@ class EventViewSet(viewsets.ModelViewSet):
     queryset         = Event.objects.all()
     serializer_class = EventSerializer
     permission_classes = [IsAuthenticated]
+
+# ====================================
+# Custom Logout View (GET-safe)
+# ====================================
+from django.contrib.auth import logout
+from django.urls import reverse
+
+def custom_logout(request):
+    """
+    Logs out the user and redirects to login or index.
+    Allows GET request to prevent 405 errors from direct links.
+    """
+    logout(request)
+    return redirect(reverse_lazy('login'))  # or 'index'

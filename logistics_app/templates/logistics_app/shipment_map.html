@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Shipment Map{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+  <h2 class="mb-3">📍 Active Shipments Map</h2>
+  <div id="map" style="height: 600px; width: 100%; border-radius: 10px; overflow: hidden;"></div>
+</div>
+
+<script
+  src="https://maps.googleapis.com/maps/api/js?key={{ google_api_key }}&callback=initMap"
+  async defer></script>
+
+<script>
+function initMap() {
+  const map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: -1.286389, lng: 36.817223 },
+    zoom: 6,
+    mapTypeId: 'roadmap'
+  });
+
+  const shipments = JSON.parse(document.getElementById("shipmentData").textContent);
+
+  shipments.forEach(s => {
+    if (s.origin_lat && s.origin_lng && s.destination_lat && s.destination_lng) {
+      const originMarker = new google.maps.Marker({
+        position: { lat: s.origin_lat, lng: s.origin_lng },
+        map: map,
+        label: "O",
+        title: `Origin: ${s.origin}`,
+        icon: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+      });
+
+      const destinationMarker = new google.maps.Marker({
+        position: { lat: s.destination_lat, lng: s.destination_lng },
+        map: map,
+        label: "D",
+        title: `Destination: ${s.destination}`,
+        icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png"
+      });
+
+      const route = new google.maps.Polyline({
+        path: [
+          { lat: s.origin_lat, lng: s.origin_lng },
+          { lat: s.destination_lat, lng: s.destination_lng }
+        ],
+        map: map,
+        strokeColor: "#007bff",
+        strokeOpacity: 0.8,
+        strokeWeight: 3
+      });
+    }
+  });
+}
+</script>
+
+<script id="shipmentData" type="application/json">
+  {{ shipments|json_script:"shipmentData" }}
+</script>
+{% endblock %}
